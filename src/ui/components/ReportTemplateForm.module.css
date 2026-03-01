@@ -1,0 +1,125 @@
+/* Этот файл хранит стили секции пользовательских шаблонов отчета. */
+.container {
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  color: #334155;
+}
+
+.textInput {
+  width: 100%;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.textArea {
+  width: 100%;
+  min-height: 160px;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.smallTextArea {
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.tokenSection {
+  display: grid;
+  gap: 6px;
+}
+
+.tokenLabel {
+  font-size: 13px;
+  color: #475569;
+}
+
+.tokenList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tokenButton {
+  border: 1px solid #c5d1de;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tokenButton:hover {
+  background: #e8f0fb;
+}
+
+.issuesSection {
+  border: 1px solid #f1d2b1;
+  border-radius: 10px;
+  background: #fff8f1;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.issuesTitle {
+  margin: 0;
+  font-size: 15px;
+  color: #9a3412;
+}
+
+.issueList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.issueItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.warningBadge {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.errorBadge {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fee2e2;
+  color: #991b1b;
+}

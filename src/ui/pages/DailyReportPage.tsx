@@ -3,6 +3,7 @@ import { useDailyReportPresenter } from '../../application/presenters/useDailyRe
 import { DailyReportForm } from '../components/DailyReportForm'
 import { ParseErrorsPanel } from '../components/ParseErrorsPanel'
 import { ReportPreviewPanel } from '../components/ReportPreviewPanel'
+import { ReportTemplateForm } from '../components/ReportTemplateForm'
 import { TaskTable } from '../components/TaskTable'
 import styles from './DailyReportPage.module.css'
 
@@ -78,6 +79,36 @@ export function DailyReportPage() {
           onTaskStatusChanged={dailyReportPresenter.onTaskStatusChanged}
           onApplyStatusToAllRequested={
             dailyReportPresenter.onApplyStatusToAllRequested
+          }
+        />
+
+        <ReportTemplateForm
+          lineTemplate={dailyReportPresenter.state.lineTemplate}
+          documentTemplate={dailyReportPresenter.state.documentTemplate}
+          reportDate={dailyReportPresenter.state.reportDate}
+          parsedTaskRows={dailyReportPresenter.state.parsedTaskRows}
+          selectedPreviewTaskId={dailyReportPresenter.state.selectedPreviewTaskId}
+          linePreviewText={dailyReportPresenter.state.linePreviewText}
+          lineTemplateVariableTokens={
+            dailyReportPresenter.state.lineTemplateVariableTokens
+          }
+          documentTemplateVariableTokens={
+            dailyReportPresenter.state.documentTemplateVariableTokens
+          }
+          reportBuildIssues={dailyReportPresenter.state.reportBuildIssues}
+          onLineTemplateChanged={dailyReportPresenter.onLineTemplateChanged}
+          onDocumentTemplateChanged={
+            dailyReportPresenter.onDocumentTemplateChanged
+          }
+          onReportDateChanged={dailyReportPresenter.onReportDateChanged}
+          onSelectedPreviewTaskIdChanged={
+            dailyReportPresenter.onSelectedPreviewTaskIdChanged
+          }
+          onLineTemplateVariableTokenClicked={
+            dailyReportPresenter.onLineTemplateVariableTokenClicked
+          }
+          onDocumentTemplateVariableTokenClicked={
+            dailyReportPresenter.onDocumentTemplateVariableTokenClicked
           }
         />
 

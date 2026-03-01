@@ -1,85 +1,33 @@
 /* Этот файл реализует presenter: управляет состоянием и вызывает use-case функции. */
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
-import type { ClipboardImageServicePort } from '../ports/clipboardImageServicePort'
-import type { OcrTextNormalizerPort } from '../ports/ocrTextNormalizerPort'
-import type { OcrProgressInfo, OcrServicePort } from '../ports/ocrServicePort'
-import { defaultTaskLinkTemplate } from '../../domain/constants/defaultTaskLinkTemplate'
-import type { NormalizationIssue } from '../../domain/models/normalizationIssue'
-import type { TaskRow } from '../../domain/models/taskRow'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { InputSourceMode } from '../../domain/types/inputSourceMode'
-import { taskStatusValues } from '../../domain/types/taskStatus'
 import type { TaskStatus } from '../../domain/types/taskStatus'
 import { ClipboardImageService } from '../../infrastructure/clipboard/clipboardImageService'
 import { OcrTextNormalizer } from '../../infrastructure/normalization/ocrTextNormalizer'
 import { TesseractOcrService } from '../../infrastructure/ocr/tesseractOcrService'
 import { TaskRowsTextParser } from '../../infrastructure/parsers/taskRowsTextParser'
-import { buildMarkdownTaskList } from '../use-cases/buildMarkdownTaskList'
+import { ReportVariablesBuilder } from '../../infrastructure/report/reportVariablesBuilder'
+import { LocalStorageSettingsStorage } from '../../infrastructure/storage/localStorageSettingsStorage'
+import type { ClipboardImageServicePort } from '../ports/clipboardImageServicePort'
+import type { OcrTextNormalizerPort } from '../ports/ocrTextNormalizerPort'
+import type { OcrProgressInfo, OcrServicePort } from '../ports/ocrServicePort'
+import type { SettingsStoragePort } from '../ports/settingsStoragePort'
+import { TemplateEngine } from '../template-engine/templateEngine'
 import { parseTaskRowsFromText } from '../use-cases/parseTaskRowsFromText'
 import type { DailyReportPresenterState } from './dailyReportPresenterState'
-
-type DailyReportPresenterAction =
-  | { type: 'inputSourceModeChanged'; inputSourceMode: InputSourceMode }
-  | { type: 'rawInputTextChanged'; rawInputText: string }
-  | { type: 'normalizedInputTextChanged'; normalizedInputText: string }
-  | { type: 'shouldNormalizeOcrTextChanged'; shouldNormalizeOcrText: boolean }
-  | { type: 'linkTemplateChanged'; linkTemplate: string }
-  | { type: 'excludedSymbolsTextChanged'; excludedSymbolsText: string }
-  | {
-      type: 'shouldNormalizeWhitespaceChanged'
-      shouldNormalizeWhitespace: boolean
-    }
-  | {
-      type: 'imageFileSelected'
-      selectedImageFileName: string | null
-      imagePreviewUrl: string | null
-    }
-  | { type: 'imageRecognitionStarted' }
-  | {
-      type: 'imageRecognitionProgressUpdated'
-      imageRecognitionProgressRatio: number
-      imageRecognitionStatusText: string
-    }
-  | {
-      type: 'imageRecognitionCompleted'
-      rawInputText: string
-      informationMessage: string
-    }
-  | { type: 'imageRecognitionFailed'; informationMessage: string }
-  | {
-      type: 'normalizationPrepared'
-      normalizedInputText: string
-      normalizationIssues: NormalizationIssue[]
-    }
-  | {
-      type: 'parsingCompleted'
-      parsedTaskRows: TaskRow[]
-      parsingErrors: DailyReportPresenterState['parsingErrors']
-      markdownResultText: string
-      informationMessage: string
-    }
-  | {
-      type: 'parsingCompletedWithNormalization'
-      normalizedInputText: string
-      normalizationIssues: NormalizationIssue[]
-      parsedTaskRows: TaskRow[]
-      parsingErrors: DailyReportPresenterState['parsingErrors']
-      markdownResultText: string
-      informationMessage: string
-    }
-  | {
-      type: 'taskStatusChanged'
-      parsedTaskRows: TaskRow[]
-      markdownResultText: string
-    }
-  | {
-      type: 'allTaskStatusesApplied'
-      parsedTaskRows: TaskRow[]
-      markdownResultText: string
-      informationMessage: string
-    }
-  | { type: 'informationMessageSet'; informationMessage: string }
-  | { type: 'copyResultSucceeded' }
-  | { type: 'copyResultFailed'; informationMessage: string }
+import {
+  appendVariableToken,
+  applyStatusToAllTasks,
+  applyTextFilters,
+  buildOcrCompletedMessage,
+  buildParsingMessage,
+  buildParsingMessageWithNormalization,
+  calculateReportPatch,
+  clipboardContainsPlainText,
+  createInitialState,
+  normalizeOcrProgressRatio,
+  updateSingleTaskStatus,
+} from './presenterHelpers'
 
 export interface DailyReportPresenter {
   state: DailyReportPresenterState
@@ -90,6 +38,12 @@ export interface DailyReportPresenter {
   onLinkTemplateChanged: (linkTemplate: string) => void
   onExcludedSymbolsTextChanged: (excludedSymbolsText: string) => void
   onShouldNormalizeWhitespaceChanged: (shouldNormalizeWhitespace: boolean) => void
+  onLineTemplateChanged: (lineTemplate: string) => void
+  onDocumentTemplateChanged: (documentTemplate: string) => void
+  onReportDateChanged: (reportDate: string) => void
+  onSelectedPreviewTaskIdChanged: (selectedPreviewTaskId: number | null) => void
+  onLineTemplateVariableTokenClicked: (variableToken: string) => void
+  onDocumentTemplateVariableTokenClicked: (variableToken: string) => void
   onImageFileSelected: (selectedImageFile: File | null) => void
   onClipboardPasteCaptured: (clipboardEvent: ClipboardEvent) => Promise<void>
   onRecognizeImageRequested: () => Promise<void>
@@ -99,298 +53,13 @@ export interface DailyReportPresenter {
   onCopyResultRequested: () => Promise<void>
 }
 
-function createInitialState(): DailyReportPresenterState {
-  return {
-    inputSourceMode: 'TEXT',
-    rawInputText: '',
-    normalizedInputText: '',
-    shouldNormalizeOcrText: true,
-    normalizationIssues: [],
-    linkTemplate: defaultTaskLinkTemplate,
-    excludedSymbolsText: '→',
-    shouldNormalizeWhitespace: true,
-    selectedImageFileName: null,
-    imagePreviewUrl: null,
-    imageProcessingState: 'idle',
-    isRecognizingImage: false,
-    imageRecognitionProgressRatio: 0,
-    imageRecognitionStatusText: null,
-    parsedTaskRows: [],
-    parsingErrors: [],
-    markdownResultText: '',
-    informationMessage: null,
-    taskStatusOptions: taskStatusValues,
-  }
-}
-
-function refreshMarkdownResultText(
-  parsedTaskRows: TaskRow[],
-  linkTemplate: string,
-): string {
-  return buildMarkdownTaskList(parsedTaskRows, linkTemplate)
-}
-
-function dailyReportPresenterReducer(
-  state: DailyReportPresenterState,
-  action: DailyReportPresenterAction,
-): DailyReportPresenterState {
-  switch (action.type) {
-    case 'inputSourceModeChanged':
-      return {
-        ...state,
-        inputSourceMode: action.inputSourceMode,
-        informationMessage: null,
-      }
-    case 'rawInputTextChanged':
-      return {
-        ...state,
-        rawInputText: action.rawInputText,
-        informationMessage: null,
-      }
-    case 'normalizedInputTextChanged':
-      return {
-        ...state,
-        normalizedInputText: action.normalizedInputText,
-        informationMessage: null,
-      }
-    case 'shouldNormalizeOcrTextChanged':
-      return {
-        ...state,
-        shouldNormalizeOcrText: action.shouldNormalizeOcrText,
-        normalizationIssues: action.shouldNormalizeOcrText
-          ? state.normalizationIssues
-          : [],
-        informationMessage: null,
-      }
-    case 'linkTemplateChanged':
-      return {
-        ...state,
-        linkTemplate: action.linkTemplate,
-        markdownResultText: refreshMarkdownResultText(
-          state.parsedTaskRows,
-          action.linkTemplate,
-        ),
-        informationMessage: null,
-      }
-    case 'excludedSymbolsTextChanged':
-      return {
-        ...state,
-        excludedSymbolsText: action.excludedSymbolsText,
-        informationMessage: null,
-      }
-    case 'shouldNormalizeWhitespaceChanged':
-      return {
-        ...state,
-        shouldNormalizeWhitespace: action.shouldNormalizeWhitespace,
-        informationMessage: null,
-      }
-    case 'imageFileSelected':
-      return {
-        ...state,
-        inputSourceMode: 'IMAGE',
-        selectedImageFileName: action.selectedImageFileName,
-        imagePreviewUrl: action.imagePreviewUrl,
-        imageProcessingState: 'idle',
-        imageRecognitionProgressRatio: 0,
-        imageRecognitionStatusText: null,
-        informationMessage: null,
-      }
-    case 'imageRecognitionStarted':
-      return {
-        ...state,
-        isRecognizingImage: true,
-        imageProcessingState: 'processing',
-        imageRecognitionProgressRatio: 0,
-        imageRecognitionStatusText: 'starting',
-        informationMessage: null,
-      }
-    case 'imageRecognitionProgressUpdated':
-      return {
-        ...state,
-        imageRecognitionProgressRatio: action.imageRecognitionProgressRatio,
-        imageRecognitionStatusText: action.imageRecognitionStatusText,
-      }
-    case 'imageRecognitionCompleted':
-      return {
-        ...state,
-        isRecognizingImage: false,
-        imageProcessingState: 'success',
-        rawInputText: action.rawInputText,
-        imageRecognitionProgressRatio: 1,
-        imageRecognitionStatusText: 'completed',
-        informationMessage: action.informationMessage,
-      }
-    case 'imageRecognitionFailed':
-      return {
-        ...state,
-        isRecognizingImage: false,
-        imageProcessingState: 'error',
-        imageRecognitionStatusText: 'failed',
-        informationMessage: action.informationMessage,
-      }
-    case 'normalizationPrepared':
-      return {
-        ...state,
-        normalizedInputText: action.normalizedInputText,
-        normalizationIssues: action.normalizationIssues,
-      }
-    case 'parsingCompleted':
-      return {
-        ...state,
-        parsedTaskRows: action.parsedTaskRows,
-        parsingErrors: action.parsingErrors,
-        markdownResultText: action.markdownResultText,
-        informationMessage: action.informationMessage,
-      }
-    case 'parsingCompletedWithNormalization':
-      return {
-        ...state,
-        normalizedInputText: action.normalizedInputText,
-        normalizationIssues: action.normalizationIssues,
-        parsedTaskRows: action.parsedTaskRows,
-        parsingErrors: action.parsingErrors,
-        markdownResultText: action.markdownResultText,
-        informationMessage: action.informationMessage,
-      }
-    case 'taskStatusChanged':
-      return {
-        ...state,
-        parsedTaskRows: action.parsedTaskRows,
-        markdownResultText: action.markdownResultText,
-        informationMessage: null,
-      }
-    case 'allTaskStatusesApplied':
-      return {
-        ...state,
-        parsedTaskRows: action.parsedTaskRows,
-        markdownResultText: action.markdownResultText,
-        informationMessage: action.informationMessage,
-      }
-    case 'informationMessageSet':
-      return {
-        ...state,
-        informationMessage: action.informationMessage,
-      }
-    case 'copyResultSucceeded':
-      return {
-        ...state,
-        informationMessage: 'Результат скопирован в буфер обмена.',
-      }
-    case 'copyResultFailed':
-      return {
-        ...state,
-        informationMessage: action.informationMessage,
-      }
-    default:
-      return state
-  }
-}
-
-function buildParsingMessage(
-  parsedTaskRowsCount: number,
-  parsingErrorsCount: number,
-): string {
-  if (parsedTaskRowsCount === 0 && parsingErrorsCount === 0) {
-    return 'Введите строки задач для разбора.'
-  }
-
-  if (parsingErrorsCount === 0) {
-    return `Распознано задач: ${parsedTaskRowsCount}.`
-  }
-
-  return `Распознано задач: ${parsedTaskRowsCount}. Ошибок: ${parsingErrorsCount}.`
-}
-
-function buildParsingMessageWithNormalization(
-  parsedTaskRowsCount: number,
-  parsingErrorsCount: number,
-  normalizationIssues: NormalizationIssue[],
-): string {
-  const normalizationErrorCount = normalizationIssues.filter(
-    (normalizationIssue) => normalizationIssue.severity === 'error',
-  ).length
-  const normalizationWarningCount = normalizationIssues.filter(
-    (normalizationIssue) => normalizationIssue.severity === 'warning',
-  ).length
-
-  return `Распознано задач: ${parsedTaskRowsCount}. Ошибок парсинга: ${parsingErrorsCount}. Нормализация: ошибок ${normalizationErrorCount}, предупреждений ${normalizationWarningCount}.`
-}
-
-function parseFilteredTokens(excludedSymbolsText: string): string[] {
-  return excludedSymbolsText
-    .split(',')
-    .map((token) => token.trim())
-    .filter((token) => token.length > 0)
-}
-
-function applyTextFilters(
-  rawInputText: string,
-  excludedSymbolsText: string,
-  shouldNormalizeWhitespace: boolean,
-): string {
-  const filteredTokens = parseFilteredTokens(excludedSymbolsText)
-  const preparedLines = rawInputText.split(/\r?\n/).map((sourceLine) => {
-    let preparedLine = sourceLine
-
-    filteredTokens.forEach((filteredToken) => {
-      preparedLine = preparedLine.split(filteredToken).join('')
-    })
-
-    if (shouldNormalizeWhitespace) {
-      preparedLine = preparedLine.replace(/\s+/g, ' ').trim()
-    } else {
-      preparedLine = preparedLine.trimEnd()
-    }
-
-    return preparedLine
-  })
-
-  return preparedLines.join('\n')
-}
-
-function updateSingleTaskStatus(
-  parsedTaskRows: TaskRow[],
-  taskId: number,
-  status: TaskStatus,
-): TaskRow[] {
-  return parsedTaskRows.map((taskRow) =>
-    taskRow.id === taskId ? { ...taskRow, status } : taskRow,
-  )
-}
-
-function applyStatusToAllTasks(
-  parsedTaskRows: TaskRow[],
-  status: TaskStatus,
-): TaskRow[] {
-  return parsedTaskRows.map((taskRow) => ({ ...taskRow, status }))
-}
-
-function normalizeOcrProgressRatio(progressRatio: number): number {
-  if (Number.isNaN(progressRatio)) {
-    return 0
-  }
-
-  return Math.max(0, Math.min(1, progressRatio))
-}
-
-function buildOcrCompletedMessage(recognizedTextLength: number): string {
-  return `OCR завершен. Распознано символов: ${recognizedTextLength}.`
-}
-
-function clipboardContainsPlainText(clipboardEvent: ClipboardEvent): boolean {
-  const clipboardData = clipboardEvent.clipboardData
-  if (!clipboardData) {
-    return false
-  }
-
-  return Array.from(clipboardData.types).includes('text/plain')
-}
-
 export function useDailyReportPresenter(): DailyReportPresenter {
-  const [state, dispatch] = useReducer(
-    dailyReportPresenterReducer,
-    undefined,
-    createInitialState,
+  const settingsStorage = useMemo<SettingsStoragePort>(
+    () => new LocalStorageSettingsStorage(),
+    [],
+  )
+  const [state, setState] = useState<DailyReportPresenterState>(() =>
+    createInitialState(settingsStorage.load()),
   )
   const taskRowsTextParser = useMemo(() => new TaskRowsTextParser(), [])
   const ocrService = useMemo<OcrServicePort>(() => new TesseractOcrService(), [])
@@ -402,8 +71,25 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     () => new OcrTextNormalizer(),
     [],
   )
+  const templateEngine = useMemo(() => new TemplateEngine(), [])
+  const reportVariablesBuilder = useMemo(() => new ReportVariablesBuilder(), [])
   const selectedImageFileReference = useRef<File | null>(null)
   const imagePreviewUrlReference = useRef<string | null>(null)
+
+  const setStateWithReport = useCallback(
+    (patch: Partial<DailyReportPresenterState>) => {
+      setState((previousState) => {
+        const mergedState = { ...previousState, ...patch }
+        const reportPatch = calculateReportPatch(
+          mergedState,
+          templateEngine,
+          reportVariablesBuilder,
+        )
+        return { ...mergedState, ...reportPatch }
+      })
+    },
+    [reportVariablesBuilder, templateEngine],
+  )
 
   const replaceImagePreviewUrl = useCallback((selectedImageFile: File | null) => {
     const previousImagePreviewUrl = imagePreviewUrlReference.current
@@ -429,8 +115,31 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     }
   }, [])
 
+  useEffect(() => {
+    settingsStorage.save({
+      documentTemplate: state.documentTemplate,
+      lineTemplate: state.lineTemplate,
+      linkTemplate: state.linkTemplate,
+      excludedSymbolsText: state.excludedSymbolsText,
+      shouldNormalizeWhitespace: state.shouldNormalizeWhitespace,
+      shouldNormalizeOcrText: state.shouldNormalizeOcrText,
+    })
+  }, [
+    settingsStorage,
+    state.documentTemplate,
+    state.lineTemplate,
+    state.linkTemplate,
+    state.excludedSymbolsText,
+    state.shouldNormalizeWhitespace,
+    state.shouldNormalizeOcrText,
+  ])
+
   const prepareNormalization = useCallback(
-    (sourceText: string, excludedSymbolsText: string, shouldNormalizeWhitespace: boolean) => {
+    (
+      sourceText: string,
+      excludedSymbolsText: string,
+      shouldNormalizeWhitespace: boolean,
+    ) => {
       const filteredSourceText = applyTextFilters(
         sourceText,
         excludedSymbolsText,
@@ -452,7 +161,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
 
   const onInputSourceModeChanged = useCallback(
     (inputSourceMode: InputSourceMode) => {
-      dispatch({ type: 'inputSourceModeChanged', inputSourceMode })
+      setState((previousState) => ({
+        ...previousState,
+        inputSourceMode,
+        informationMessage: null,
+      }))
 
       if (inputSourceMode === 'IMAGE' && state.shouldNormalizeOcrText) {
         const normalizationResult = prepareNormalization(
@@ -461,11 +174,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           state.shouldNormalizeWhitespace,
         )
 
-        dispatch({
-          type: 'normalizationPrepared',
+        setState((previousState) => ({
+          ...previousState,
           normalizedInputText: normalizationResult.normalizedText,
           normalizationIssues: normalizationResult.issues,
-        })
+        }))
       }
     },
     [
@@ -479,7 +192,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
 
   const onRawInputTextChanged = useCallback(
     (rawInputText: string) => {
-      dispatch({ type: 'rawInputTextChanged', rawInputText })
+      setState((previousState) => ({
+        ...previousState,
+        rawInputText,
+        informationMessage: null,
+      }))
 
       if (state.inputSourceMode === 'IMAGE' && state.shouldNormalizeOcrText) {
         const normalizationResult = prepareNormalization(
@@ -488,11 +205,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           state.shouldNormalizeWhitespace,
         )
 
-        dispatch({
-          type: 'normalizationPrepared',
+        setState((previousState) => ({
+          ...previousState,
           normalizedInputText: normalizationResult.normalizedText,
           normalizationIssues: normalizationResult.issues,
-        })
+        }))
       }
     },
     [
@@ -505,12 +222,23 @@ export function useDailyReportPresenter(): DailyReportPresenter {
   )
 
   const onNormalizedInputTextChanged = useCallback((normalizedInputText: string) => {
-    dispatch({ type: 'normalizedInputTextChanged', normalizedInputText })
+    setState((previousState) => ({
+      ...previousState,
+      normalizedInputText,
+      informationMessage: null,
+    }))
   }, [])
 
   const onShouldNormalizeOcrTextChanged = useCallback(
     (shouldNormalizeOcrText: boolean) => {
-      dispatch({ type: 'shouldNormalizeOcrTextChanged', shouldNormalizeOcrText })
+      setState((previousState) => ({
+        ...previousState,
+        shouldNormalizeOcrText,
+        normalizationIssues: shouldNormalizeOcrText
+          ? previousState.normalizationIssues
+          : [],
+        informationMessage: null,
+      }))
 
       if (shouldNormalizeOcrText && state.inputSourceMode === 'IMAGE') {
         const normalizationResult = prepareNormalization(
@@ -519,11 +247,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           state.shouldNormalizeWhitespace,
         )
 
-        dispatch({
-          type: 'normalizationPrepared',
+        setState((previousState) => ({
+          ...previousState,
           normalizedInputText: normalizationResult.normalizedText,
           normalizationIssues: normalizationResult.issues,
-        })
+        }))
       }
     },
     [
@@ -535,13 +263,20 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     ],
   )
 
-  const onLinkTemplateChanged = useCallback((linkTemplate: string) => {
-    dispatch({ type: 'linkTemplateChanged', linkTemplate })
-  }, [])
+  const onLinkTemplateChanged = useCallback(
+    (linkTemplate: string) => {
+      setStateWithReport({ linkTemplate, informationMessage: null })
+    },
+    [setStateWithReport],
+  )
 
   const onExcludedSymbolsTextChanged = useCallback(
     (excludedSymbolsText: string) => {
-      dispatch({ type: 'excludedSymbolsTextChanged', excludedSymbolsText })
+      setState((previousState) => ({
+        ...previousState,
+        excludedSymbolsText,
+        informationMessage: null,
+      }))
 
       if (state.inputSourceMode === 'IMAGE' && state.shouldNormalizeOcrText) {
         const normalizationResult = prepareNormalization(
@@ -550,11 +285,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           state.shouldNormalizeWhitespace,
         )
 
-        dispatch({
-          type: 'normalizationPrepared',
+        setState((previousState) => ({
+          ...previousState,
           normalizedInputText: normalizationResult.normalizedText,
           normalizationIssues: normalizationResult.issues,
-        })
+        }))
       }
     },
     [
@@ -568,10 +303,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
 
   const onShouldNormalizeWhitespaceChanged = useCallback(
     (shouldNormalizeWhitespace: boolean) => {
-      dispatch({
-        type: 'shouldNormalizeWhitespaceChanged',
+      setState((previousState) => ({
+        ...previousState,
         shouldNormalizeWhitespace,
-      })
+        informationMessage: null,
+      }))
 
       if (state.inputSourceMode === 'IMAGE' && state.shouldNormalizeOcrText) {
         const normalizationResult = prepareNormalization(
@@ -580,11 +316,11 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           shouldNormalizeWhitespace,
         )
 
-        dispatch({
-          type: 'normalizationPrepared',
+        setState((previousState) => ({
+          ...previousState,
           normalizedInputText: normalizationResult.normalizedText,
           normalizationIssues: normalizationResult.issues,
-        })
+        }))
       }
     },
     [
@@ -596,56 +332,121 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     ],
   )
 
+  const onLineTemplateChanged = useCallback(
+    (lineTemplate: string) => {
+      setStateWithReport({ lineTemplate, informationMessage: null })
+    },
+    [setStateWithReport],
+  )
+
+  const onDocumentTemplateChanged = useCallback(
+    (documentTemplate: string) => {
+      setStateWithReport({ documentTemplate, informationMessage: null })
+    },
+    [setStateWithReport],
+  )
+
+  const onReportDateChanged = useCallback(
+    (reportDate: string) => {
+      setStateWithReport({ reportDate, informationMessage: null })
+    },
+    [setStateWithReport],
+  )
+
+  const onSelectedPreviewTaskIdChanged = useCallback(
+    (selectedPreviewTaskId: number | null) => {
+      setStateWithReport({ selectedPreviewTaskId, informationMessage: null })
+    },
+    [setStateWithReport],
+  )
+
+  const onLineTemplateVariableTokenClicked = useCallback(
+    (variableToken: string) => {
+      setStateWithReport({
+        lineTemplate: appendVariableToken(state.lineTemplate, variableToken),
+        informationMessage: null,
+      })
+    },
+    [setStateWithReport, state.lineTemplate],
+  )
+
+  const onDocumentTemplateVariableTokenClicked = useCallback(
+    (variableToken: string) => {
+      setStateWithReport({
+        documentTemplate: appendVariableToken(
+          state.documentTemplate,
+          variableToken,
+        ),
+        informationMessage: null,
+      })
+    },
+    [setStateWithReport, state.documentTemplate],
+  )
+
   const recognizeImageFile = useCallback(
-    async (selectedImageFile: File, shouldNormalizeOcrText: boolean) => {
-      dispatch({ type: 'imageRecognitionStarted' })
+    async (
+      selectedImageFile: File,
+      shouldNormalizeOcrText: boolean,
+      excludedSymbolsText: string,
+      shouldNormalizeWhitespace: boolean,
+    ) => {
+      setState((previousState) => ({
+        ...previousState,
+        isRecognizingImage: true,
+        imageProcessingState: 'processing',
+        imageRecognitionProgressRatio: 0,
+        imageRecognitionStatusText: 'starting',
+        informationMessage: null,
+      }))
 
       try {
         const recognizedText = await ocrService.recognizeTextFromImage(
           selectedImageFile,
           (ocrProgressInfo: OcrProgressInfo) => {
-            dispatch({
-              type: 'imageRecognitionProgressUpdated',
+            setState((previousState) => ({
+              ...previousState,
               imageRecognitionProgressRatio: normalizeOcrProgressRatio(
                 ocrProgressInfo.progressRatio,
               ),
               imageRecognitionStatusText: ocrProgressInfo.statusText,
-            })
+            }))
           },
         )
 
-        dispatch({
-          type: 'imageRecognitionCompleted',
+        setState((previousState) => ({
+          ...previousState,
+          isRecognizingImage: false,
+          imageProcessingState: 'success',
           rawInputText: recognizedText,
+          imageRecognitionProgressRatio: 1,
+          imageRecognitionStatusText: 'completed',
           informationMessage: buildOcrCompletedMessage(recognizedText.length),
-        })
+        }))
 
         if (shouldNormalizeOcrText) {
           const normalizationResult = prepareNormalization(
             recognizedText,
-            state.excludedSymbolsText,
-            state.shouldNormalizeWhitespace,
+            excludedSymbolsText,
+            shouldNormalizeWhitespace,
           )
 
-          dispatch({
-            type: 'normalizationPrepared',
+          setState((previousState) => ({
+            ...previousState,
             normalizedInputText: normalizationResult.normalizedText,
             normalizationIssues: normalizationResult.issues,
-          })
+          }))
         }
       } catch {
-        dispatch({
-          type: 'imageRecognitionFailed',
+        setState((previousState) => ({
+          ...previousState,
+          isRecognizingImage: false,
+          imageProcessingState: 'error',
+          imageRecognitionStatusText: 'failed',
           informationMessage: 'Не удалось распознать текст с изображения.',
-        })
+        }))
       }
     },
-    [
-      ocrService,
-      prepareNormalization,
-      state.excludedSymbolsText,
-      state.shouldNormalizeWhitespace,
-    ],
+    [ocrService, prepareNormalization],
   )
 
   const onImageFileSelected = useCallback(
@@ -653,11 +454,16 @@ export function useDailyReportPresenter(): DailyReportPresenter {
       selectedImageFileReference.current = selectedImageFile
       const imagePreviewUrl = replaceImagePreviewUrl(selectedImageFile)
 
-      dispatch({
-        type: 'imageFileSelected',
+      setState((previousState) => ({
+        ...previousState,
+        inputSourceMode: 'IMAGE',
         selectedImageFileName: selectedImageFile ? selectedImageFile.name : null,
         imagePreviewUrl,
-      })
+        imageProcessingState: 'idle',
+        imageRecognitionProgressRatio: 0,
+        imageRecognitionStatusText: null,
+        informationMessage: null,
+      }))
     },
     [replaceImagePreviewUrl],
   )
@@ -672,31 +478,42 @@ export function useDailyReportPresenter(): DailyReportPresenter {
           return
         }
 
-        dispatch({
-          type: 'informationMessageSet',
+        setState((previousState) => ({
+          ...previousState,
           informationMessage: 'В буфере обмена нет изображения PNG/JPG.',
-        })
+        }))
         return
       }
 
       clipboardEvent.preventDefault()
-
       selectedImageFileReference.current = clipboardImageFile
       const imagePreviewUrl = replaceImagePreviewUrl(clipboardImageFile)
 
-      dispatch({
-        type: 'imageFileSelected',
+      setState((previousState) => ({
+        ...previousState,
+        inputSourceMode: 'IMAGE',
         selectedImageFileName: clipboardImageFile.name,
         imagePreviewUrl,
-      })
+        imageProcessingState: 'idle',
+        imageRecognitionProgressRatio: 0,
+        imageRecognitionStatusText: null,
+        informationMessage: null,
+      }))
 
-      await recognizeImageFile(clipboardImageFile, state.shouldNormalizeOcrText)
+      await recognizeImageFile(
+        clipboardImageFile,
+        state.shouldNormalizeOcrText,
+        state.excludedSymbolsText,
+        state.shouldNormalizeWhitespace,
+      )
     },
     [
       clipboardImageService,
       recognizeImageFile,
       replaceImagePreviewUrl,
+      state.excludedSymbolsText,
       state.shouldNormalizeOcrText,
+      state.shouldNormalizeWhitespace,
     ],
   )
 
@@ -704,15 +521,25 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     const selectedImageFile = selectedImageFileReference.current
 
     if (!selectedImageFile) {
-      dispatch({
-        type: 'informationMessageSet',
+      setState((previousState) => ({
+        ...previousState,
         informationMessage: 'Сначала выберите изображение PNG/JPG.',
-      })
+      }))
       return
     }
 
-    await recognizeImageFile(selectedImageFile, state.shouldNormalizeOcrText)
-  }, [recognizeImageFile, state.shouldNormalizeOcrText])
+    await recognizeImageFile(
+      selectedImageFile,
+      state.shouldNormalizeOcrText,
+      state.excludedSymbolsText,
+      state.shouldNormalizeWhitespace,
+    )
+  }, [
+    recognizeImageFile,
+    state.excludedSymbolsText,
+    state.shouldNormalizeOcrText,
+    state.shouldNormalizeWhitespace,
+  ])
 
   const onParseRequested = useCallback(() => {
     if (state.inputSourceMode === 'IMAGE' && state.shouldNormalizeOcrText) {
@@ -739,23 +566,17 @@ export function useDailyReportPresenter(): DailyReportPresenter {
       }
 
       const parsingResult = taskRowsTextParser.parseRawInput(normalizedInputText)
-      const markdownResultText = refreshMarkdownResultText(
-        parsingResult.parsedTaskRows,
-        state.linkTemplate,
-      )
       const informationMessage = buildParsingMessageWithNormalization(
         parsingResult.parsedTaskRows.length,
         parsingResult.parsingErrors.length,
         normalizationIssues,
       )
 
-      dispatch({
-        type: 'parsingCompletedWithNormalization',
+      setStateWithReport({
         normalizedInputText,
         normalizationIssues,
         parsedTaskRows: parsingResult.parsedTaskRows,
         parsingErrors: parsingResult.parsingErrors,
-        markdownResultText,
         informationMessage,
       })
       return
@@ -767,34 +588,17 @@ export function useDailyReportPresenter(): DailyReportPresenter {
       state.shouldNormalizeWhitespace,
     )
     const parsingResult = parseTaskRowsFromText(filteredRawInputText, taskRowsTextParser)
-    const markdownResultText = refreshMarkdownResultText(
-      parsingResult.parsedTaskRows,
-      state.linkTemplate,
-    )
     const informationMessage = buildParsingMessage(
       parsingResult.parsedTaskRows.length,
       parsingResult.parsingErrors.length,
     )
 
-    dispatch({
-      type: 'parsingCompleted',
+    setStateWithReport({
       parsedTaskRows: parsingResult.parsedTaskRows,
       parsingErrors: parsingResult.parsingErrors,
-      markdownResultText,
       informationMessage,
     })
-  }, [
-    prepareNormalization,
-    state.excludedSymbolsText,
-    state.inputSourceMode,
-    state.linkTemplate,
-    state.normalizationIssues,
-    state.normalizedInputText,
-    state.rawInputText,
-    state.shouldNormalizeOcrText,
-    state.shouldNormalizeWhitespace,
-    taskRowsTextParser,
-  ])
+  }, [prepareNormalization, setStateWithReport, state, taskRowsTextParser])
 
   const onTaskStatusChanged = useCallback(
     (taskId: number, status: TaskStatus) => {
@@ -803,52 +607,36 @@ export function useDailyReportPresenter(): DailyReportPresenter {
         taskId,
         status,
       )
-      const markdownResultText = refreshMarkdownResultText(
-        updatedTaskRows,
-        state.linkTemplate,
-      )
-
-      dispatch({
-        type: 'taskStatusChanged',
-        parsedTaskRows: updatedTaskRows,
-        markdownResultText,
-      })
+      setStateWithReport({ parsedTaskRows: updatedTaskRows, informationMessage: null })
     },
-    [state.linkTemplate, state.parsedTaskRows],
+    [setStateWithReport, state.parsedTaskRows],
   )
 
   const onApplyStatusToAllRequested = useCallback(
     (status: TaskStatus) => {
       if (state.parsedTaskRows.length === 0) {
-        dispatch({
-          type: 'informationMessageSet',
+        setState((previousState) => ({
+          ...previousState,
           informationMessage: 'Нет задач для массовой смены статуса.',
-        })
+        }))
         return
       }
 
       const updatedTaskRows = applyStatusToAllTasks(state.parsedTaskRows, status)
-      const markdownResultText = refreshMarkdownResultText(
-        updatedTaskRows,
-        state.linkTemplate,
-      )
-
-      dispatch({
-        type: 'allTaskStatusesApplied',
+      setStateWithReport({
         parsedTaskRows: updatedTaskRows,
-        markdownResultText,
         informationMessage: 'Статус применен ко всем задачам.',
       })
     },
-    [state.linkTemplate, state.parsedTaskRows],
+    [setStateWithReport, state.parsedTaskRows],
   )
 
   const onCopyResultRequested = useCallback(async () => {
     if (state.markdownResultText.trim().length === 0) {
-      dispatch({
-        type: 'copyResultFailed',
+      setState((previousState) => ({
+        ...previousState,
         informationMessage: 'Нет данных для копирования.',
-      })
+      }))
       return
     }
 
@@ -856,22 +644,25 @@ export function useDailyReportPresenter(): DailyReportPresenter {
       typeof navigator === 'undefined' ||
       typeof navigator.clipboard?.writeText !== 'function'
     ) {
-      dispatch({
-        type: 'copyResultFailed',
+      setState((previousState) => ({
+        ...previousState,
         informationMessage:
           'Буфер обмена недоступен в текущем окружении браузера.',
-      })
+      }))
       return
     }
 
     try {
       await navigator.clipboard.writeText(state.markdownResultText)
-      dispatch({ type: 'copyResultSucceeded' })
+      setState((previousState) => ({
+        ...previousState,
+        informationMessage: 'Результат скопирован в буфер обмена.',
+      }))
     } catch {
-      dispatch({
-        type: 'copyResultFailed',
+      setState((previousState) => ({
+        ...previousState,
         informationMessage: 'Не удалось скопировать результат.',
-      })
+      }))
     }
   }, [state.markdownResultText])
 
@@ -884,6 +675,12 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     onLinkTemplateChanged,
     onExcludedSymbolsTextChanged,
     onShouldNormalizeWhitespaceChanged,
+    onLineTemplateChanged,
+    onDocumentTemplateChanged,
+    onReportDateChanged,
+    onSelectedPreviewTaskIdChanged,
+    onLineTemplateVariableTokenClicked,
+    onDocumentTemplateVariableTokenClicked,
     onImageFileSelected,
     onClipboardPasteCaptured,
     onRecognizeImageRequested,
