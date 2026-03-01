@@ -4,6 +4,22 @@ import type { ReportBuildIssue } from '../../domain/models/reportBuildIssue'
 import type { TaskRow } from '../../domain/models/taskRow'
 import styles from './ReportTemplateForm.module.css'
 
+const defaultTokenHint = 'Нажмите, чтобы вставить переменную в шаблон.'
+
+const lineVariableHintByToken: Record<string, string> = {
+  '{id}': 'ID задачи из исходного списка.',
+  '{title}': 'Название задачи.',
+  '{duration}': 'Затраченное время по задаче.',
+  '{statusText}': 'Текст статуса задачи (например: "Выполнил").',
+  '{link}': 'Ссылка на задачу, собранная по шаблону ссылки.',
+}
+
+const documentVariableHintByToken: Record<string, string> = {
+  '{date}': 'Дата отчета.',
+  '{list}': 'Сформированный список строк со всеми включенными задачами.',
+  '{totalDuration}': 'Суммарная длительность всех задач, попавших в отчет.',
+}
+
 export interface ReportTemplateFormProps {
   lineTemplate: string
   documentTemplate: string
@@ -95,6 +111,7 @@ export function ReportTemplateForm({
               key={variableToken}
               type="button"
               className={styles.tokenButton}
+              title={documentVariableHintByToken[variableToken] ?? defaultTokenHint}
               onClick={() => onDocumentTemplateVariableTokenClicked(variableToken)}
             >
               {variableToken}
@@ -121,6 +138,7 @@ export function ReportTemplateForm({
               key={variableToken}
               type="button"
               className={styles.tokenButton}
+              title={lineVariableHintByToken[variableToken] ?? defaultTokenHint}
               onClick={() => onLineTemplateVariableTokenClicked(variableToken)}
             >
               {variableToken}
