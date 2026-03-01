@@ -102,3 +102,18 @@
 .statusButtonActive:hover {
   background: #145f96;
 }
+
+.checkboxColumn {
+  width: 40px;
+  text-align: center;
+}
+
+.includeCheckbox {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.rowExcluded {
+  opacity: 0.45;
+}

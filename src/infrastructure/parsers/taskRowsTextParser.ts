@@ -53,6 +53,7 @@ export class TaskRowsTextParser implements TaskRowsParserPort {
         title: taskTitle,
         durationText: `${taskDurationHours} ч. ${taskDurationMinutes}м.`,
         status: defaultTaskStatus,
+        isIncluded: true,
       })
     })
 

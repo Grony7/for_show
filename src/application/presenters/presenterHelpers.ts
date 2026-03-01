@@ -139,6 +139,16 @@ export function updateSingleTaskStatus(
   )
 }
 
+export function updateSingleTaskIncluded(
+  parsedTaskRows: TaskRow[],
+  taskId: number,
+  isIncluded: boolean,
+): TaskRow[] {
+  return parsedTaskRows.map((taskRow) =>
+    taskRow.id === taskId ? { ...taskRow, isIncluded } : taskRow,
+  )
+}
+
 export function applyStatusToAllTasks(
   parsedTaskRows: TaskRow[],
   status: TaskStatus,
@@ -203,9 +213,13 @@ export function calculateReportPatch(
   DailyReportPresenterState,
   'markdownResultText' | 'reportBuildIssues' | 'selectedPreviewTaskId' | 'linePreviewText'
 > {
+  const includedTaskRows = state.parsedTaskRows.filter(
+    (taskRow) => taskRow.isIncluded,
+  )
+
   const buildReportResult = buildReport(
     {
-      taskRows: state.parsedTaskRows,
+      taskRows: includedTaskRows,
       lineTemplate: state.lineTemplate,
       documentTemplate: state.documentTemplate,
       reportDate: state.reportDate,

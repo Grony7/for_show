@@ -26,6 +26,7 @@ import {
   clipboardContainsPlainText,
   createInitialState,
   normalizeOcrProgressRatio,
+  updateSingleTaskIncluded,
   updateSingleTaskStatus,
 } from './presenterHelpers'
 
@@ -48,6 +49,7 @@ export interface DailyReportPresenter {
   onClipboardPasteCaptured: (clipboardEvent: ClipboardEvent) => Promise<void>
   onRecognizeImageRequested: () => Promise<void>
   onParseRequested: () => void
+  onTaskIncludedChanged: (taskId: number, isIncluded: boolean) => void
   onTaskStatusChanged: (taskId: number, status: TaskStatus) => void
   onApplyStatusToAllRequested: (status: TaskStatus) => void
   onCopyResultRequested: () => Promise<void>
@@ -600,6 +602,18 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     })
   }, [prepareNormalization, setStateWithReport, state, taskRowsTextParser])
 
+  const onTaskIncludedChanged = useCallback(
+    (taskId: number, isIncluded: boolean) => {
+      const updatedTaskRows = updateSingleTaskIncluded(
+        state.parsedTaskRows,
+        taskId,
+        isIncluded,
+      )
+      setStateWithReport({ parsedTaskRows: updatedTaskRows, informationMessage: null })
+    },
+    [setStateWithReport, state.parsedTaskRows],
+  )
+
   const onTaskStatusChanged = useCallback(
     (taskId: number, status: TaskStatus) => {
       const updatedTaskRows = updateSingleTaskStatus(
@@ -685,6 +699,7 @@ export function useDailyReportPresenter(): DailyReportPresenter {
     onClipboardPasteCaptured,
     onRecognizeImageRequested,
     onParseRequested,
+    onTaskIncludedChanged,
     onTaskStatusChanged,
     onApplyStatusToAllRequested,
     onCopyResultRequested,

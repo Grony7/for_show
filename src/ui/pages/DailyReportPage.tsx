@@ -76,6 +76,7 @@ export function DailyReportPage() {
         <TaskTable
           parsedTaskRows={dailyReportPresenter.state.parsedTaskRows}
           taskStatusOptions={dailyReportPresenter.state.taskStatusOptions}
+          onTaskIncludedChanged={dailyReportPresenter.onTaskIncludedChanged}
           onTaskStatusChanged={dailyReportPresenter.onTaskStatusChanged}
           onApplyStatusToAllRequested={
             dailyReportPresenter.onApplyStatusToAllRequested

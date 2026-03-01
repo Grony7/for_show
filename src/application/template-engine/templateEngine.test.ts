@@ -8,6 +8,7 @@ const sampleTaskRow: TaskRow = {
   title: 'Подготовить описание задачи',
   durationText: '1 ч. 5м.',
   status: 'DONE',
+  isIncluded: true,
 }
 
 describe('TemplateEngine', () => {

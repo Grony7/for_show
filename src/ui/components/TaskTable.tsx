@@ -10,6 +10,7 @@ import styles from './TaskTable.module.css'
 export interface TaskTableProps {
   parsedTaskRows: TaskRow[]
   taskStatusOptions: readonly TaskStatus[]
+  onTaskIncludedChanged: (taskId: number, isIncluded: boolean) => void
   onTaskStatusChanged: (taskId: number, status: TaskStatus) => void
   onApplyStatusToAllRequested: (status: TaskStatus) => void
 }
@@ -17,6 +18,7 @@ export interface TaskTableProps {
 export function TaskTable({
   parsedTaskRows,
   taskStatusOptions,
+  onTaskIncludedChanged,
   onTaskStatusChanged,
   onApplyStatusToAllRequested,
 }: TaskTableProps) {
@@ -45,6 +47,7 @@ export function TaskTable({
           <table className={styles.table}>
             <thead>
               <tr>
+                <th className={styles.checkboxColumn}>Вкл.</th>
                 <th>Статус</th>
                 <th>ID</th>
                 <th>Текст задачи</th>
@@ -53,7 +56,20 @@ export function TaskTable({
             </thead>
             <tbody>
               {parsedTaskRows.map((taskRow) => (
-                <tr key={taskRow.id}>
+                <tr
+                  key={taskRow.id}
+                  className={taskRow.isIncluded ? '' : styles.rowExcluded}
+                >
+                  <td className={styles.checkboxColumn}>
+                    <input
+                      type="checkbox"
+                      checked={taskRow.isIncluded}
+                      onChange={(event) =>
+                        onTaskIncludedChanged(taskRow.id, event.target.checked)
+                      }
+                      className={styles.includeCheckbox}
+                    />
+                  </td>
                   <td>
                     <div className={styles.statusSegmentedControl}>
                       {taskStatusOptions.map((taskStatus) => (

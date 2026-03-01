@@ -6,4 +6,5 @@ export interface TaskRow {
   title: string
   durationText: string
   status: TaskStatus
+  isIncluded: boolean
 }
