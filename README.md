@@ -1,73 +1,32 @@
-# React + TypeScript + Vite
+# Для галочки
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Генератор ежедневного отчета из текста Bitrix24.
 
-Currently, two official plugins are available:
+Проект навайбкожен за час, поэтому не судите строго по реализации: тут приоритет был в том, чтобы быстро получить рабочий результат и закрыть практическую задачу по сборке отчета. Архитектура, нейминг и отдельные технические решения могут выглядеть избыточно или, наоборот, слишком прямолинейно. Это осознанный компромисс в пользу скорости.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Если коротко: это утилита для преобразования списка задач за день в готовый markdown-отчет. Можно вставить текст вручную или распознать его с картинки, отредактировать статусы задач, исключить лишние пункты и получить итоговый текст для отправки.
 
-## React Compiler
+Важно: распознавание по картинке работает кривовато на сложных скринах. OCR иногда путает символы, переносы строк и время, поэтому результат лучше проверять глазами перед отправкой отчета. Для максимально предсказуемого результата используйте режим ручного текста или предварительно чистый, контрастный скрин.
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+## Что умеет
 
-## Expanding the ESLint configuration
+- парсить список задач из текста за день;
+- собирать markdown-отчет по шаблонам;
+- менять статусы задач;
+- исключать задачи из итогового отчета галочкой;
+- распознавать текст с изображения (с ограничениями качества OCR).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Быстрый старт
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Сборка и проверки:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
+npm run lint
+npm run test
 ```
