@@ -1,0 +1,38 @@
+/* Этот файл хранит стили блока ошибок разбора входного текста. */
+.container {
+  background: #ffffff;
+  border: 1px solid #f3c4c4;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  color: #991b1b;
+  font-size: 20px;
+}
+
+.errorList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.errorHeader {
+  color: #991b1b;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.errorLine {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 8px;
+  color: #7f1d1d;
+}

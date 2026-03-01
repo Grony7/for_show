@@ -1,0 +1,104 @@
+/* Этот файл хранит стили таблицы задач и контролов статуса. */
+.container {
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.headerRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.bulkActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bulkButton {
+  border: 1px solid #c5d1de;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+}
+
+.bulkButton:hover {
+  background: #e8f0fb;
+}
+
+.emptyState {
+  margin: 0;
+  color: #64748b;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 13px;
+  color: #475569;
+  border-bottom: 1px solid #dbe3ec;
+  padding: 8px;
+}
+
+.table td {
+  vertical-align: top;
+  padding: 10px 8px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.statusSegmentedControl {
+  display: inline-flex;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.statusButton {
+  border: none;
+  background: #ffffff;
+  color: #334155;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-right: 1px solid #c5d1de;
+  white-space: nowrap;
+}
+
+.statusButton:last-child {
+  border-right: none;
+}
+
+.statusButton:hover {
+  background: #eef4ff;
+}
+
+.statusButtonActive {
+  background: #186faf;
+  color: #ffffff;
+}
+
+.statusButtonActive:hover {
+  background: #145f96;
+}

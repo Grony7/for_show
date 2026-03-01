@@ -1,0 +1,58 @@
+/* Этот файл хранит стили формы ввода исходного текста и шаблона ссылки. */
+.container {
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  color: #334155;
+}
+
+.textArea {
+  width: 100%;
+  min-height: 170px;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.textInput {
+  width: 100%;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.button {
+  width: fit-content;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #186faf;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #145f96;
+}

@@ -1,0 +1,38 @@
+/* Этот файл хранит стили для результата и кнопки копирования. */
+.container {
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.resultArea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid #c5d1de;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.button {
+  width: fit-content;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #197a56;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #146449;
+}
