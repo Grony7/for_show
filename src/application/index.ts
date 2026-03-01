@@ -1,6 +1,10 @@
 /* Этот файл реэкспортирует публичные сущности application-слоя версии 1. */
 export * from './ports/taskRowsParserPort'
+export * from './ports/ocrServicePort'
+export * from './ports/clipboardImageServicePort'
+export * from './ports/ocrTextNormalizerPort'
 export * from './use-cases/parseTaskRowsFromText'
 export * from './use-cases/buildMarkdownTaskList'
+export * from './use-cases/normalizeAndParseTasks'
 export * from './presenters/dailyReportPresenterState'
 export * from './presenters/useDailyReportPresenter'

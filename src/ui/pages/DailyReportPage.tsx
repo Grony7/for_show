@@ -25,13 +25,38 @@ export function DailyReportPage() {
         </header>
 
         <DailyReportForm
+          inputSourceMode={dailyReportPresenter.state.inputSourceMode}
           rawInputText={dailyReportPresenter.state.rawInputText}
+          normalizedInputText={dailyReportPresenter.state.normalizedInputText}
+          shouldNormalizeOcrText={
+            dailyReportPresenter.state.shouldNormalizeOcrText
+          }
+          normalizationIssues={dailyReportPresenter.state.normalizationIssues}
           linkTemplate={dailyReportPresenter.state.linkTemplate}
           excludedSymbolsText={dailyReportPresenter.state.excludedSymbolsText}
           shouldNormalizeWhitespace={
             dailyReportPresenter.state.shouldNormalizeWhitespace
           }
+          selectedImageFileName={dailyReportPresenter.state.selectedImageFileName}
+          imagePreviewUrl={dailyReportPresenter.state.imagePreviewUrl}
+          isRecognizingImage={dailyReportPresenter.state.isRecognizingImage}
+          imageProcessingState={dailyReportPresenter.state.imageProcessingState}
+          imageRecognitionProgressRatio={
+            dailyReportPresenter.state.imageRecognitionProgressRatio
+          }
+          imageRecognitionStatusText={
+            dailyReportPresenter.state.imageRecognitionStatusText
+          }
+          onInputSourceModeChanged={
+            dailyReportPresenter.onInputSourceModeChanged
+          }
           onRawInputTextChanged={dailyReportPresenter.onRawInputTextChanged}
+          onNormalizedInputTextChanged={
+            dailyReportPresenter.onNormalizedInputTextChanged
+          }
+          onShouldNormalizeOcrTextChanged={
+            dailyReportPresenter.onShouldNormalizeOcrTextChanged
+          }
           onLinkTemplateChanged={dailyReportPresenter.onLinkTemplateChanged}
           onExcludedSymbolsTextChanged={
             dailyReportPresenter.onExcludedSymbolsTextChanged
@@ -39,6 +64,11 @@ export function DailyReportPage() {
           onShouldNormalizeWhitespaceChanged={
             dailyReportPresenter.onShouldNormalizeWhitespaceChanged
           }
+          onImageFileSelected={dailyReportPresenter.onImageFileSelected}
+          onClipboardPasteCaptured={
+            dailyReportPresenter.onClipboardPasteCaptured
+          }
+          onRecognizeImageRequested={dailyReportPresenter.onRecognizeImageRequested}
           onParseRequested={dailyReportPresenter.onParseRequested}
         />
 

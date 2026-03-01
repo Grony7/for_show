@@ -1,4 +1,4 @@
-/* Этот файл хранит стили формы ввода исходного текста и шаблона ссылки. */
+/* Этот файл хранит стили формы ввода текста, OCR, paste-зоны и нормализации. */
 .container {
   background: #ffffff;
   border: 1px solid #dbe3ec;
@@ -11,6 +11,79 @@
 .title {
   margin: 0;
   font-size: 20px;
+}
+
+.modeTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.modeTabButton {
+  border: 1px solid #c5d1de;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+}
+
+.modeTabButtonActive {
+  background: #186faf;
+  color: #ffffff;
+  border-color: #186faf;
+}
+
+.pasteZone {
+  border: 2px dashed #9fb3c8;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 14px;
+  outline: none;
+  display: grid;
+  gap: 6px;
+}
+
+.pasteZone:focus {
+  border-color: #186faf;
+  box-shadow: 0 0 0 3px rgba(24, 111, 175, 0.15);
+}
+
+.pasteZoneProcessing {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+
+.pasteZoneSuccess {
+  border-color: #197a56;
+  background: #ecfdf3;
+}
+
+.pasteZoneError {
+  border-color: #b42318;
+  background: #fef2f2;
+}
+
+.pasteZoneTitle {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.pasteZoneHint {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.imagePreview {
+  margin-top: 8px;
+  width: 220px;
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #d3deeb;
+  background: #ffffff;
 }
 
 .fieldLabel {
@@ -32,6 +105,132 @@
   border: 1px solid #c5d1de;
   border-radius: 10px;
   padding: 10px 12px;
+}
+
+.fileInput {
+  width: 100%;
+  border: 1px dashed #9fb3c8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fbff;
+}
+
+.helperText {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.secondaryButton {
+  width: fit-content;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background: #4338ca;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progressContainer {
+  display: grid;
+  gap: 4px;
+}
+
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #475569;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+}
+
+.issuesSection {
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.issuesTitle {
+  margin: 0;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.issuesEmpty {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.issuesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.issueItem {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.issueWarningBadge {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.issueErrorBadge {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.issueMessage {
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.issueRawLine {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 6px;
+  font-size: 12px;
+  color: #334155;
 }
 
 .checkboxRow {
