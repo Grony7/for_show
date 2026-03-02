@@ -3,6 +3,7 @@ import { defaultReportDocumentTemplate } from '../../domain/constants/defaultRep
 import { defaultReportLineTemplate } from '../../domain/constants/defaultReportLineTemplate'
 import { defaultTaskLinkTemplate } from '../../domain/constants/defaultTaskLinkTemplate'
 import type { NormalizationIssue } from '../../domain/models/normalizationIssue'
+import type { ReportBuildIssue } from '../../domain/models/reportBuildIssue'
 import type { ReportSettings } from '../../domain/models/reportSettings'
 import type { TaskRow } from '../../domain/models/taskRow'
 import { taskStatusValues } from '../../domain/types/taskStatus'
@@ -15,6 +16,19 @@ import {
 } from '../template-engine/templateVariables'
 import { buildReport } from '../use-cases/buildReport'
 import type { DailyReportPresenterState } from './dailyReportPresenterState'
+
+const legacyDefaultReportLineTemplate =
+  '- {statusText} задачи №[{id}]({link}) - {title}'
+
+function resolveInitialLineTemplate(savedSettings: ReportSettings | null): string {
+  if (!savedSettings?.lineTemplate) {
+    return defaultReportLineTemplate
+  }
+
+  return savedSettings.lineTemplate === legacyDefaultReportLineTemplate
+    ? defaultReportLineTemplate
+    : savedSettings.lineTemplate
+}
 
 export function buildDefaultReportDate(): string {
   const now = new Date()
@@ -44,7 +58,7 @@ export function createInitialState(
     imageRecognitionStatusText: null,
     parsedTaskRows: [],
     parsingErrors: [],
-    lineTemplate: savedSettings?.lineTemplate ?? defaultReportLineTemplate,
+    lineTemplate: resolveInitialLineTemplate(savedSettings),
     documentTemplate: savedSettings?.documentTemplate ?? defaultReportDocumentTemplate,
     reportDate: buildDefaultReportDate(),
     selectedPreviewTaskId: null,
@@ -127,6 +141,27 @@ export function applyTextFilters(
   })
 
   return preparedLines.join('\n')
+}
+
+function normalizeLinkTemplate(linkTemplate: string): string {
+  return linkTemplate.trim().length > 0
+    ? linkTemplate.trim()
+    : defaultTaskLinkTemplate
+}
+
+function createDefaultLinkTemplateIssue(
+  linkTemplate: string,
+): ReportBuildIssue | null {
+  if (normalizeLinkTemplate(linkTemplate) !== defaultTaskLinkTemplate) {
+    return null
+  }
+
+  return {
+    severity: 'warning',
+    scope: 'linkTemplate',
+    message:
+      'Замените ссылку по умолчанию "https://example.com/tasks/{id}" на свою.',
+  }
 }
 
 export function updateSingleTaskStatus(
@@ -243,10 +278,17 @@ export function calculateReportPatch(
         state.linkTemplate,
       ).renderedText
     : ''
+  const defaultLinkTemplateIssue =
+    includedTaskRows.length > 0
+      ? createDefaultLinkTemplateIssue(state.linkTemplate)
+      : null
+  const reportBuildIssues = defaultLinkTemplateIssue
+    ? [defaultLinkTemplateIssue, ...buildReportResult.issues]
+    : buildReportResult.issues
 
   return {
     markdownResultText: buildReportResult.markdownReportText,
-    reportBuildIssues: buildReportResult.issues,
+    reportBuildIssues,
     selectedPreviewTaskId,
     linePreviewText,
   }

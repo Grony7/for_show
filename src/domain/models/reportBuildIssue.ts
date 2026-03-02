@@ -5,6 +5,7 @@ export type ReportBuildIssueScope =
   | 'lineTemplate'
   | 'documentTemplate'
   | 'variables'
+  | 'linkTemplate'
 
 export interface ReportBuildIssue {
   severity: ReportBuildIssueSeverity
