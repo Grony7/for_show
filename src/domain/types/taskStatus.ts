@@ -4,10 +4,10 @@ export const taskStatusValues = ['STARTED', 'CONTINUING', 'DONE', 'FINISHED'] as
 export type TaskStatus = (typeof taskStatusValues)[number]
 
 export const taskStatusLabelByValue: Record<TaskStatus, string> = {
-  STARTED: 'Начал выполнение',
-  CONTINUING: 'Продолжаю выполнение',
-  DONE: 'Выполнил',
-  FINISHED: 'Закончил выполнение',
+  STARTED: 'Начал выполнение задачи',
+  CONTINUING: 'Продолжаю выполнение задачи',
+  DONE: 'Выполнил задачу',
+  FINISHED: 'Закончил выполнение задачи',
 }
 
 export const taskStatusShortLabelByValue: Record<TaskStatus, string> = {

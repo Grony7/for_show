@@ -29,7 +29,7 @@ export function buildMarkdownTaskList(
       const taskLink = buildTaskLink(taskRow.id, normalizedLinkTemplate)
 
       const statusLabel = taskStatusLabelByValue[taskRow.status]
-      return `- ${statusLabel} задачи №[${taskRow.id}](${taskLink}) - ${taskRow.title}`
+      return `- ${statusLabel} №[${taskRow.id}](${taskLink}) - ${taskRow.title}`
     })
     .join('\n')
 }

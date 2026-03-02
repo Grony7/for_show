@@ -16,12 +16,12 @@ describe('TemplateEngine', () => {
     const templateEngine = new TemplateEngine()
     const renderLineResult = templateEngine.renderLine(
       sampleTaskRow,
-      '- {statusText} задачи №[{id}]({link}) - {title} ({duration})',
+      '- {statusText} №[{id}]({link}) - {title} ({duration})',
       'https://example.local/tasks/{id}',
     )
 
     expect(renderLineResult.renderedText).toBe(
-      '- Выполнил задачи №[4790](https://example.local/tasks/4790) - Подготовить описание задачи (1 ч. 5м.)',
+      '- Выполнил задачу №[4790](https://example.local/tasks/4790) - Подготовить описание задачи (1 ч. 5м.)',
     )
     expect(renderLineResult.issues).toHaveLength(0)
   })
@@ -34,7 +34,7 @@ describe('TemplateEngine', () => {
       'https://example.local/tasks/{id}',
     )
 
-    expect(renderLineResult.renderedText).toBe('- Выполнил ')
+    expect(renderLineResult.renderedText).toBe('- Выполнил задачу ')
     expect(renderLineResult.issues).toHaveLength(1)
     expect(renderLineResult.issues[0].severity).toBe('warning')
   })
